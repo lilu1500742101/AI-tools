@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>移动端图片文字添加工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 15px;
+        }
+        
+        .settings-panel {
+            flex: 1;
+            min-width: 300px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-right: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .preview-panel {
+            flex: 2;
+            min-width: 300px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px;
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel-title i {
+            margin-right: 8px;
+            background: #1e3c72;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #2a5298;
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"],
+        input[type="file"],
+        input[type="range"],
+        select,
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        select:focus,
+        input[type="number"]:focus {
+            border-color: #1e3c72;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(30, 60, 114, 0.2);
+        }
+        
+        .color-picker {
+            display: flex;
+            align-items: center;
+        }
+        
+        input[type="color"] {
+            width: 50px;
+            height: 42px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 12px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25);
+            margin: 4px;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(30, 60, 114, 0.35);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+        }
+        
+        .btn-download {
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+        }
+        
+        .btn-download-all {
+            background: linear-gradient(to right, #2980b9, #3498db);
+        }
+        
+        .btn-clear {
+            background: linear-gradient(to right, #c0392b, #e74c3c);
+        }
+        
+        .btn-process {
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
+        }
+        
+        .btn-info {
+            background: linear-gradient(to right, #3498db, #2980b9);
+        }
+        
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .preview-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .preview-item {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-item:hover {
+            transform: translateY(-3px);
+        }
+        
+        .preview-img-container {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 160px;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+        
+        .preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .preview-info {
+            padding: 12px;
+            text-align: center;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+        
+        .preview-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .file-input-container input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 14px;
+            background: #e0e7ff;
+            border: 2px dashed #1e3c72;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            color: #1e3c72;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input-label:hover {
+            background: #d0d9ff;
+        }
+        
+        .file-input-label i {
+            margin-right: 8px;
+        }
+        
+        .selected-files {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .selected-files ul {
+            list-style: none;
+        }
+        
+        .selected-files li {
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .selected-files li:last-child {
+            border-bottom: none;
+        }
+        
+        .selected-files i {
+            margin-right: 8px;
+            color: #1e3c72;
+        }
+        
+        .no-preview {
+            text-align: center;
+            padding: 40px 15px;
+            color: #777;
+            grid-column: 1 / -1;
+        }
+        
+        .no-preview i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .range-value {
+            background: #1e3c72;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 18px;
+            font-size: 13px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .text-draggable {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            pointer-events: auto;
+            text-align: center;
+            touch-action: none;
+        }
+        
+        .position-indicator {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 10;
+        }
+        
+        .preview-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+            padding: 0 12px 12px;
+        }
+        
+        .preview-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.3s;
+            min-width: 70px;
+            flex: 1;
+        }
+        
+        .preview-btn:hover {
+            background: #2a5298;
+        }
+        
+        .font-size-container {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .font-size-container input {
+            flex: 1;
+        }
+        
+        .font-size-container .range-container {
+            flex: 2;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: #f1f5f9;
+            color: #666;
+            font-size: 0.85rem;
+            position: relative;
+        }
+        
+        footer .tech-support {
+            margin-top: 8px;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .spinner {
+            border: 7px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 7px solid #3498db;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-bar {
+            background: #e0e7ff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .instructions-container {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #1e3c72;
+        }
+        
+        .instructions-container h3 {
+            color: #1e3c72;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        
+        .instructions-container h3 i {
+            margin-right: 8px;
+        }
+        
+        .instructions-container ol {
+            padding-left: 18px;
+        }
+        
+        .instructions-container li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        .instructions-container .highlight {
+            background: #fff9c4;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .instructions-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+            font-size: 0.9rem;
+        }
+        
+        /* 移动端优化 */
+        .mobile-warning {
+            display: none;
+            background: #ffecb3;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            text-align: center;
+            border: 2px dashed #ff9800;
+        }
+        
+        .download-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .download-link {
+            display: block;
+            padding: 8px 15px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+        
+        .download-link:hover {
+            background: #388E3C;
+        }
+        
+        .download-link i {
+            margin-right: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 12px;
+            }
+            
+            header {
+                padding: 15px 10px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .subtitle {
+                font-size: 0.9rem;
+            }
+            
+            .main-content {
+                padding: 10px;
+                flex-direction: column;
+            }
+            
+            .settings-panel, .preview-panel {
+                padding: 15px;
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+            
+            .panel-title {
+                font-size: 1.2rem;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+            
+            .preview-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .mobile-warning {
+                display: block;
+            }
+            
+            .instructions-container {
+                padding: 12px;
+            }
+            
+            .font-size-container {
+                flex-direction: column;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .preview-btn {
+                min-width: auto;
+                padding: 5px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                border-radius: 10px;
+            }
+            
+            .preview-img-container {
+                min-height: 140px;
+            }
+            
+            .preview-img {
+                max-height: 180px;
+            }
+            
+            .preview-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .preview-btn {
+                width: 100%;
+            }
+            
+            .instructions-btn {
+                top: 10px;
+                right: 10px;
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            
+            .btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="instructions-btn" id="instructionsBtn" title="使用说明">
+            <i class="fas fa-question"></i>
+        </button>
+        
+        <header>
+            <h1>移动端图片文字添加工具</h1>
+            <p class="subtitle">添加自定义文字到多张图片 - 支持触摸拖动文字位置</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="settings-panel">
+                <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 设置面板</h2>
+                
+                <div class="mobile-warning">
+                    <i class="fas fa-mobile-alt"></i> 提示：在手机上长按文字可拖动位置
+                </div>
+                
+                <div class="file-input-container">
+                    <input type="file" id="imageUpload" accept="image/*" multiple>
+                    <label for="imageUpload" class="file-input-label">
+                        <i class="fas fa-cloud-upload-alt"></i> 选择图片文件
+                    </label>
+                </div>
+                
+                <div class="selected-files">
+                    <h3>已选文件 (<span id="fileCount">0</span>):</h3>
+                    <ul id="fileList"></ul>
+                </div>
+                
+                <div class="form-group">
+                    <label for="textInput"><i class="fas fa-font"></i> 添加文字</label>
+                    <input type="text" id="textInput" placeholder="输入要添加的文字..." value="示例文字">
+                </div>
+                
+                <div class="form-group">
+                    <label for="textColor"><i class="fas fa-palette"></i> 文字颜色</label>
+                    <div class="color-picker">
+                        <input type="color" id="textColor" value="#ffffff">
+                        <span id="colorValue">#FFFFFF</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fontSelect"><i class="fas fa-text-height"></i> 字体选择</label>
+                    <select id="fontSelect">
+                        <option value="Arial">Arial</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Comic Sans MS">Comic Sans MS</option>
+                        <option value="'楷体', 'KaiTi', 'STKaiti'">楷体</option>
+                        <option value="'宋体', 'SimSun', 'STSong'">宋体</option>
+                        <option value="'黑体', 'SimHei', 'STHeiti'">黑体</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fontSize"><i class="fas fa-ruler"></i> 字体大小 (10-100px)</label>
+                    <div class="font-size-container">
+                        <input type="number" id="fontSizeInput" min="10" max="100" value="40">
+                        <div class="range-container">
+                            <input type="range" id="fontSizeSlider" min="10" max="100" value="40">
+                            <span class="range-value" id="sizeValue">40px</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-arrows-alt"></i> 文字位置</label>
+                    <p style="color: #666; font-size: 0.85rem; margin-top: 5px;">在预览图上长按文字拖动调整位置</p>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn btn-process" id="processBtn"><i class="fas fa-play-circle"></i> 应用设置</button>
+                    <button class="btn btn-download-all" id="downloadAllBtn"><i class="fas fa-file-archive"></i> 打包下载</button>
+                    <button class="btn btn-clear" id="clearBtn"><i class="fas fa-trash"></i> 清除所有</button>
+                </div>
+                
+                <div class="status-bar" id="statusBar">
+                    已选择 <span id="selectedCount">0</span> 张图片 | 文字位置: 底部上方50px
+                </div>
+                
+                <div class="instructions-container">
+                    <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+                    <ol>
+                        <li>点击 <span class="highlight">选择图片文件</span> 按钮上传一张或多张图片</li>
+                        <li>在 <span class="highlight">添加文字</span> 输入框中输入您想要添加到图片上的文字</li>
+                        <li>使用颜色选择器设置文字颜色，从字体下拉菜单中选择字体</li>
+                        <li>通过滑块或输入框设置字体大小 (10-100px)</li>
+                        <li>在预览图上<strong>长按文字拖动</strong>调整位置，或使用<span class="highlight">重置位置</span>和<span class="highlight">居中</span>按钮</li>
+                        <li>点击 <span class="highlight">应用设置</span> 应用所有设置</li>
+                        <li>在预览图上点击<strong>下载按钮</strong>下载单张图片</li>
+                        <li>点击 <span class="highlight">打包下载</span> 下载所有图片的压缩包</li>
+                        <li>点击 <span class="highlight">清除所有</span> 可以重新开始</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="preview-panel">
+                <h2 class="panel-title"><i class="fas fa-eye"></i> 预览效果</h2>
+                <div class="preview-container" id="previewContainer">
+                    <div class="no-preview">
+                        <i class="fas fa-images"></i>
+                        <h3>暂无图片预览</h3>
+                        <p>请在上方选择图片并设置文字样式</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 移动端图片文字添加工具 | 支持JPG, PNG, GIF等常见图片格式</p>
+            <div class="tech-support">技术支持：璐璐 | 移动端优化版</div>
+        </footer>
+    </div>
+    
+    <div id="processingOverlay" class="processing-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <div id="processingText">正在处理图片，请稍候...</div>
+    </div>
+    
+    <script>
+        // DOM元素
+        const imageUpload = document.getElementById('imageUpload');
+        const fileCount = document.getElementById('fileCount');
+        const fileList = document.getElementById('fileList');
+        const textInput = document.getElementById('textInput');
+        const textColor = document.getElementById('textColor');
+        const colorValue = document.getElementById('colorValue');
+        const fontSelect = document.getElementById('fontSelect');
+        const fontSizeInput = document.getElementById('fontSizeInput');
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const sizeValue = document.getElementById('sizeValue');
+        const previewContainer = document.getElementById('previewContainer');
+        const processBtn = document.getElementById('processBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const processingText = document.getElementById('processingText');
+        const statusBar = document.getElementById('statusBar');
+        const selectedCount = document.getElementById('selectedCount');
+        const instructionsBtn = document.getElementById('instructionsBtn');
+        
+        // 存储图片数据
+        let images = [];
+        let previewImages = [];
+        
+        // 存储文字位置
+        let textPositions = {};
+        
+        // 初始化
+        colorValue.textContent = textColor.value.toUpperCase();
+        sizeValue.textContent = fontSizeSlider.value + 'px';
+        
+        // 事件监听
+        imageUpload.addEventListener('change', handleImageUpload);
+        textInput.addEventListener('input', updatePreviews);
+        textColor.addEventListener('input', updateColor);
+        fontSelect.addEventListener('change', updatePreviews);
+        instructionsBtn.addEventListener('click', scrollToInstructions);
+        
+        // 字体大小输入框和滑动条联动
+        fontSizeInput.addEventListener('input', function() {
+            let value = parseInt(this.value);
+            if (value < 10) value = 10;
+            if (value > 100) value = 100;
+            this.value = value;
+            fontSizeSlider.value = value;
+            sizeValue.textContent = value + 'px';
+            updatePreviews();
+        });
+        
+        fontSizeSlider.addEventListener('input', function() {
+            fontSizeInput.value = this.value;
+            sizeValue.textContent = this.value + 'px';
+            updatePreviews();
+        });
+        
+        processBtn.addEventListener('click', processImages);
+        downloadAllBtn.addEventListener('click', handleDownloadAll);
+        clearBtn.addEventListener('click', clearAll);
+        
+        // 滚动到使用说明
+        function scrollToInstructions() {
+            document.querySelector('.instructions-container').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+        
+        // 更新颜色显示
+        function updateColor() {
+            colorValue.textContent = textColor.value.toUpperCase();
+            updatePreviews();
+        }
+        
+        // 处理图片上传
+        function handleImageUpload(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            
+            // 清空之前的文件列表
+            fileList.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileId = Date.now() + '-' + i;
+                
+                // 添加到文件列表
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-image"></i> ${file.name}`;
+                fileList.appendChild(li);
+                
+                // 读取图片并添加到预览
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = function() {
+                        images.push({
+                            id: fileId,
+                            name: file.name,
+                            src: event.target.result,
+                            img: img,
+                            width: img.width,
+                            height: img.height
+                        });
+                        fileCount.textContent = images.length;
+                        selectedCount.textContent = images.length;
+                        createPreview(img, file.name, fileId);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 创建预览
+        function createPreview(img, fileName, fileId) {
+            // 移除"无预览"提示
+            if (previewContainer.querySelector('.no-preview')) {
+                previewContainer.innerHTML = '';
+            }
+            
+            // 创建预览项
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            previewItem.dataset.id = fileId;
+            
+            // 创建预览容器
+            const previewImgContainer = document.createElement('div');
+            previewImgContainer.className = 'preview-img-container';
+            
+            // 创建预览图片
+            const previewImg = document.createElement('img');
+            previewImg.className = 'preview-img';
+            previewImg.src = img.src;
+            previewImg.alt = fileName;
+            
+            // 创建文字元素
+            const textElement = document.createElement('div');
+            textElement.className = 'text-draggable';
+            textElement.id = `text-${fileId}`;
+            textElement.textContent = textInput.value || '示例文字';
+            textElement.style.color = textColor.value;
+            textElement.style.fontFamily = fontSelect.value;
+            textElement.style.fontSize = fontSizeInput.value + 'px';
+            textElement.style.position = 'absolute';
+            
+            // 初始位置
+            const positionX = 50;
+            const positionY = 90;
+            
+            // 存储初始位置
+            if (!textPositions[fileId]) {
+                textPositions[fileId] = { x: positionX, y: positionY };
+            }
+            
+            // 设置位置
+            textElement.style.left = `${textPositions[fileId].x}%`;
+            textElement.style.top = `${textPositions[fileId].y}%`;
+            
+            // 位置指示器
+            const positionIndicator = document.createElement('div');
+            positionIndicator.className = 'position-indicator';
+            positionIndicator.textContent = `位置: ${Math.round(textPositions[fileId].x)}%, ${Math.round(textPositions[fileId].y)}%`;
+            
+            // 组装预览
+            previewImgContainer.appendChild(previewImg);
+            previewImgContainer.appendChild(textElement);
+            previewImgContainer.appendChild(positionIndicator);
+            
+            // 创建预览信息
+            const previewInfo = document.createElement('div');
+            previewInfo.className = 'preview-info';
+            previewInfo.innerHTML = `<div class="preview-text">${fileName}</div>`;
+            
+            // 预览控制按钮
+            const previewControls = document.createElement('div');
+            previewControls.className = 'preview-controls';
+            previewControls.innerHTML = `
+                <button class="preview-btn" onclick="resetPosition('${fileId}')"><i class="fas fa-sync"></i> 重置</button>
+                <button class="preview-btn" onclick="centerText('${fileId}')"><i class="fas fa-crosshairs"></i> 居中</button>
+                <button class="preview-btn" onclick="downloadSingleImage('${fileId}')"><i class="fas fa-download"></i> 下载</button>
+            `;
+            
+            // 组装预览项
+            previewItem.appendChild(previewImgContainer);
+            previewItem.appendChild(previewInfo);
+            previewItem.appendChild(previewControls);
+            
+            // 添加到预览容器
+            previewContainer.appendChild(previewItem);
+            
+            // 添加拖拽功能（支持触摸）
+            makeElementDraggable(textElement, fileId, positionIndicator);
+            
+            // 保存预览图片
+            previewImages.push({
+                id: fileId,
+                name: fileName,
+                src: img.src,
+                element: textElement,
+                width: img.width,
+                height: img.height
+            });
+        }
+        
+        // 重置位置
+        window.resetPosition = function(fileId) {
+            textPositions[fileId] = { x: 50, y: 90 };
+            const textElement = document.getElementById(`text-${fileId}`);
+            if (textElement) {
+                textElement.style.left = '50%';
+                textElement.style.top = '90%';
+            }
+            
+            // 更新位置指示器
+            const previewItem = document.querySelector(`.preview-item[data-id="${fileId}"]`);
+            if (previewItem) {
+                const positionIndicator = previewItem.querySelector('.position-indicator');
+                if (positionIndicator) {
+                    positionIndicator.textContent = `位置: 50%, 90%`;
+                }
+            }
+        };
+        
+        // 居中文字
+        window.centerText = function(fileId) {
+            const previewItem = document.querySelector(`.preview-item[data-id="${fileId}"]`);
+            if (!previewItem) return;
+            
+            const textElement = document.getElementById(`text-${fileId}`);
+            if (!textElement) return;
+            
+            // 获取容器尺寸
+            const container = textElement.parentElement;
+            const containerRect = container.getBoundingClientRect();
+            
+            // 计算居中位置
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            
+            // 计算百分比位置
+            const percentX = (centerX / containerRect.width) * 100;
+            const percentY = (centerY / containerRect.height) * 100;
+            
+            // 更新位置
+            textElement.style.left = `${percentX}%`;
+            textElement.style.top = `${percentY}%`;
+            
+            // 更新存储的位置
+            textPositions[fileId] = { x: percentX, y: percentY };
+            
+            // 更新位置指示器
+            const positionIndicator = previewItem.querySelector('.position-indicator');
+            if (positionIndicator) {
+                positionIndicator.textContent = `位置: ${Math.round(percentX)}%, ${Math.round(percentY)}%`;
+            }
+        };
+        
+        // 使元素可拖动（支持触摸事件）
+        function makeElementDraggable(element, fileId, positionIndicator) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            // 鼠标事件
+            element.onmousedown = dragMouseDown;
+            
+            // 触摸事件
+            element.ontouchstart = dragTouchStart;
+            
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // 获取鼠标位置
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function dragTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                pos3 = touch.clientX;
+                pos4 = touch.clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+            
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                updatePosition(e.clientX, e.clientY);
+            }
+            
+            function elementTouchDrag(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                updatePosition(touch.clientX, touch.clientY);
+            }
+            
+            function updatePosition(clientX, clientY) {
+                // 计算新位置
+                pos1 = pos3 - clientX;
+                pos2 = pos4 - clientY;
+                pos3 = clientX;
+                pos4 = clientY;
+                
+                // 获取容器位置和尺寸
+                const container = element.parentElement;
+                const containerRect = container.getBoundingClientRect();
+                
+                // 计算新位置（百分比）
+                const currentX = parseFloat(element.style.left) || 0;
+                const currentY = parseFloat(element.style.top) || 0;
+                
+                const newX = currentX - (pos1 / containerRect.width * 100);
+                const newY = currentY - (pos2 / containerRect.height * 100);
+                
+                // 限制在容器范围内
+                const boundedX = Math.max(0, Math.min(100, newX));
+                const boundedY = Math.max(0, Math.min(100, newY));
+                
+                // 设置元素位置
+                element.style.left = `${boundedX}%`;
+                element.style.top = `${boundedY}%`;
+                
+                // 更新存储的位置
+                textPositions[fileId] = { x: boundedX, y: boundedY };
+                
+                // 更新位置指示器
+                positionIndicator.textContent = `位置: ${Math.round(boundedX)}%, ${Math.round(boundedY)}%`;
+            }
+            
+            function closeDragElement() {
+                // 清除鼠标事件
+                document.onmouseup = null;
+                document.onmousemove = null;
+                
+                // 清除触摸事件
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
+        }
+        
+        // 更新所有预览
+        function updatePreviews() {
+            if (images.length === 0) return;
+            
+            // 更新所有文字元素
+            previewImages.forEach(item => {
+                const textElement = document.getElementById(`text-${item.id}`);
+                if (textElement) {
+                    textElement.textContent = textInput.value || '示例文字';
+                    textElement.style.color = textColor.value;
+                    textElement.style.fontFamily = fontSelect.value;
+                    textElement.style.fontSize = fontSizeInput.value + 'px';
+                }
+            });
+        }
+        
+        // 开始处理图片
+        function processImages() {
+            if (images.length === 0) {
+                alert('请先添加图片！');
+                return;
+            }
+            
+            updatePreviews();
+            statusBar.innerHTML = `<i class="fas fa-check-circle"></i> 文字设置已应用到所有图片！`;
+            statusBar.style.background = '#d4edda';
+            statusBar.style.color = '#155724';
+            
+            // 3秒后恢复状态栏
+            setTimeout(() => {
+                statusBar.innerHTML = `已选择 <span id="selectedCount">${images.length}</span> 张图片 | 文字位置: 底部上方50px`;
+                statusBar.style.background = '#e0e7ff';
+                statusBar.style.color = '#333';
+            }, 3000);
+        }
+        
+        // 下载单张图片
+        window.downloadSingleImage = function(fileId) {
+            const imageData = previewImages.find(img => img.id === fileId);
+            if (!imageData) return;
+            
+            // 显示处理中覆盖层
+            processingOverlay.style.display = 'flex';
+            processingText.textContent = `正在处理: ${imageData.name}`;
+            
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = function() {
+                    // 设置canvas尺寸为原始图片尺寸
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // 绘制原始图片
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 添加文字
+                    const text = textInput.value || '示例文字';
+                    const color = textColor.value;
+                    const font = fontSelect.value;
+                    const size = parseInt(fontSizeInput.value);
+                    const position = textPositions[fileId] || { x: 50, y: 90 };
+                    
+                    // 计算实际位置
+                    const textX = (position.x / 100) * canvas.width;
+                    const textY = (position.y / 100) * canvas.height;
+                    
+                    // 设置文字样式
+                    ctx.font = `bold ${size}px ${font}`;
+                    ctx.fillStyle = color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                    ctx.shadowBlur = 3;
+                    
+                    // 添加文字
+                    ctx.fillText(text, textX, textY);
+                    
+                    // 创建下载链接
+                    try {
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                        const link = document.createElement('a');
+                        link.href = dataUrl;
+                        link.download = imageData.name.replace(/\.[^/.]+$/, "") + '_文字.jpg';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    } catch (e) {
+                        console.error("图片转换错误:", e);
+                        alert('图片下载失败，请重试');
+                    }
+                    
+                    // 隐藏处理中覆盖层
+                    processingOverlay.style.display = 'none';
+                };
+                
+                img.src = imageData.src;
+            }, 300);
+        };
+        
+        // 打包下载所有图片
+        function handleDownloadAll() {
+            if (previewImages.length === 0) {
+                alert('请先添加图片并设置文字！');
+                return;
+            }
+            
+            // 显示处理中覆盖层
+            processingOverlay.style.display = 'flex';
+            processingText.textContent = '正在打包所有图片...';
+            
+            // 使用JSZip创建ZIP文件
+            const zip = new JSZip();
+            const imgFolder = zip.folder("images_with_text");
+            
+            let processed = 0;
+            const total = previewImages.length;
+            
+            previewImages.forEach((image) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // 绘制原始图片
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 添加文字
+                    const text = textInput.value || '示例文字';
+                    const color = textColor.value;
+                    const font = fontSelect.value;
+                    const size = parseInt(fontSizeInput.value);
+                    const position = textPositions[image.id] || { x: 50, y: 90 };
+                    
+                    // 计算实际位置
+                    const textX = (position.x / 100) * canvas.width;
+                    const textY = (position.y / 100) * canvas.height;
+                    
+                    // 设置文字样式
+                    ctx.font = `bold ${size}px ${font}`;
+                    ctx.fillStyle = color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                    ctx.shadowBlur = 3;
+                    
+                    // 添加文字
+                    ctx.fillText(text, textX, textY);
+                    
+                    // 添加到ZIP
+                    try {
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                        const data = dataUrl.split(',')[1];
+                        imgFolder.file(image.name, data, {base64: true});
+                    } catch (e) {
+                        console.error("图片转换错误:", e);
+                    }
+                    
+                    processed++;
+                    
+                    // 更新进度
+                    processingText.textContent = `正在打包: ${processed}/${total} (${Math.round((processed/total)*100)}%)`;
+                    
+                    // 全部处理完成后下载
+                    if (processed === total) {
+                        zip.generateAsync({type:"blob"})
+                        .then(function(content) {
+                            saveAs(content, "images_with_text.zip");
+                            processingOverlay.style.display = 'none';
+                        });
+                    }
+                };
+                
+                img.src = image.src;
+            });
+        }
+        
+        // 清除所有
+        function clearAll() {
+            images = [];
+            previewImages = [];
+            textPositions = {};
+            imageUpload.value = '';
+            fileCount.textContent = '0';
+            selectedCount.textContent = '0';
+            fileList.innerHTML = '';
+            previewContainer.innerHTML = `
+                <div class="no-preview">
+                    <i class="fas fa-images"></i>
+                    <h3>暂无图片预览</h3>
+                    <p>请在上方选择图片并设置文字样式</p>
+                </div>
+            `;
+            statusBar.innerHTML = `已选择 <span id="selectedCount">0</span> 张图片 | 文字位置: 底部上方50px`;
+            statusBar.style.background = '#e0e7ff';
+            statusBar.style.color = '#333';
+        }
+    </script>
+</body>
+</html>
